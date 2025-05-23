@@ -1,0 +1,182 @@
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  font-family: 'Pretendard', sans-serif;
+  background-color: #fff;
+  color: #333;
+}
+
+.title {
+  text-align: center;
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.dropdown {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.numbers {
+  margin-top: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.bonus {
+  margin-top: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #777;
+}
+
+.button {
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover {
+  background-color: #005ad1;
+}
+
+.button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+  border: none;
+}
+
+.numberGrid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.numberButton {
+  padding: 0.6rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 1px solid #ccc;
+  background-color: #f5f5f5;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.06);
+}
+
+.numberButton:hover {
+  background-color: #e0f0ff;
+  border-color: #0070f3;
+  transform: translateY(-1px);
+}
+
+.numberButton.selected {
+  background-color: #0070f3;
+  color: white;
+  border-color: #005ad1;
+  box-shadow: 0 2px 6px rgba(0, 112, 243, 0.4);
+}
+
+.numberButton:disabled {
+  background-color: #eee;
+  color: #aaa;
+  cursor: not-allowed;
+  border-color: #ddd;
+}
+
+.resultMessage {
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0070f3;
+  text-align: center;
+}
+
+.complete {
+  margin-top: 1rem;
+  color: green;
+  font-weight: bold;
+}
+
+/* Layout for 2-column */
+.flexWrapper {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.mainPanel {
+  flex: 2;
+  min-width: 0;
+}
+
+.statsPanel {
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  background: #fafafa;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.statsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+.statsTable td {
+  border-bottom: 1px solid #eee;
+  padding: 0.5rem 0.75rem;
+}
+
+.statsTable td:first-child {
+  font-weight: 600;
+  color: #444;
+}
+
+/* Responsive: mobile */
+@media (max-width: 768px) {
+  .flexWrapper {
+    flex-direction: column;
+  }
+
+  .mainPanel,
+  .statsPanel {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .statsPanel {
+    margin-top: 2rem;
+  }
+
+  .numberGrid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
