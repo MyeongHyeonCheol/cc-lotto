@@ -43,7 +43,7 @@ const ACHIEVEMENTS = [
   {
     id: 'thirdWin',
     title: '3등 당첨을 진심으로 축하합니다!',
-    description: '당신은 150만원의 주인이 되셨습니다!',
+    description: '당신은 150만원의 주인이 되셨습니다!', 
     conditionDescription: '3등 당첨',
     condition: (stats: any, tryCount: number, net: number) => stats.third >= 1,
   },
@@ -222,7 +222,10 @@ export default function Home() {
     setMyNumbers([]);
     setWinningNumbers([]);
     setBonusNumber(null);
-  };
+    // ✨ 자동 추첨 중지 로직 추가
+    stopAutoDraw();
+    setIsAutoRunning(false);
+};
 
   const startAutoDraw = () => {
     if (intervalRef.current) return;
