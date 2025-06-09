@@ -45,18 +45,6 @@
     text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
-/* h2 태그에 직접 스타일을 적용하지 않고, 각 패널의 h2에 클래스를 주거나 */
-/* :global()을 사용하여 전역 스타일을 명시적으로 적용합니다. */
-/* 여기서는 각 h2에 별도의 클래스를 부여하는 방식을 선호합니다. */
-/* 또는 아래처럼 :global()을 사용할 수도 있습니다. */
-/* :global(h2) {
-    color: #555;
-    margin-top: 0;
-    margin-bottom: 1.2rem;
-    font-size: 1.6rem;
-    border-bottom: 2px solid #e9e9e9;
-    padding-bottom: 0.5rem;
-} */
 .panelTitle { /* 새로운 클래스 추가 */
     color: #555;
     margin-top: 0;
@@ -65,7 +53,6 @@
     border-bottom: 2px solid #e9e9e9;
     padding-bottom: 0.5rem;
 }
-
 
 /* 섹션 공통 스타일 */
 .section {
@@ -78,7 +65,6 @@
 }
 
 /* hr 태그는 전역 스타일로 처리하거나, 별도의 클래스를 부여해야 합니다. */
-/* 여기서는 간단히 클래스를 부여하는 방식으로 수정합니다. */
 .divider { /* hr 대신 사용할 클래스 */
     border: none;
     border-top: 2px dashed #e0e0e0;
@@ -283,9 +269,9 @@
 }
 
 .buttonSeparator {
-  height: 1px;
-  background-color: #e0e0e0;
-  margin: 2rem 0;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 2rem 0;
 }
 
 /* ------------------- 모달 스타일 ------------------- */
@@ -321,8 +307,6 @@
     margin-bottom: 1.5rem;
 }
 
-/* p 태그는 전역 스타일로 처리하거나, 클래스를 부여해야 합니다. */
-/* 여기서는 모달 내용의 p 태그에 별도의 클래스를 부여합니다. */
 .modalContent p { /* 원래 p 태그에 직접 적용되던 스타일 */
     margin-bottom: 2rem;
     font-size: 1.15rem;
@@ -445,7 +429,7 @@
 
 .achievementsList li {
     padding: 0.7rem 0;
-    border-bottom: 1px dashed #eee;
+    /* border-bottom: 1px dashed #eee; */ /* 하단 점선 제거 */
     font-size: 0.95rem;
     display: flex;
     flex-direction: column;
@@ -455,80 +439,142 @@
     border-bottom: none;
 }
 
+/* 업적 아이템 공통 스타일 */
+.achievementItem {
+    position: relative;
+    margin-bottom: 5px;
+    padding: 8px;
+    border: none; /* 모든 업적 아이템의 테두리 제거 */
+    border-radius: 4px;
+    background-color: transparent; /* 모든 업적 아이템의 배경색 투명하게 */
+}
+
+/* 달성된 업적 스타일 (배경색 없음, 윤곽 없음) */
+.achievementUnlocked {
+    border: none; /* 윤곽 완전히 제거 (재확인) */
+    background-color: transparent; /* 배경색 투명하게 (재확인) */
+    color: #333; /* 기본 텍스트 색상 유지 */
+    cursor: pointer;
+}
+
+.achievementUnlocked .achievementTitle {
+    color: #0070f3; /* 달성된 업적의 제목을 파란색으로 */
+}
+
+.achievementUnlocked .achievementDescription {
+    color: #333; /* 달성된 업적의 설명을 검은색 계열로 */
+}
+
+/* 미달성 업적 텍스트 스타일 */
+.achievementItem:not(.achievementUnlocked) .achievementTitle,
+.achievementItem:not(.achievementUnlocked) .achievementDescription {
+    color: #888; /* 미달성 업적 텍스트를 회색으로 */
+}
+
+
 .achievementTitle {
     font-weight: 600;
-    color: #444;
+    color: #444; /* 기본은 이 색상을 따르지만, 위에서 덮어씌워짐 */
     margin-bottom: 0.2rem;
 }
 
 .achievementDescription {
-    color: #777;
+    color: #777; /* 기본은 이 색상을 따르지만, 위에서 덮어씌워짐 */
     font-size: 0.85rem;
 }
 
-.achievementUnlocked .achievementTitle {
-    color: #0070f3;
+/* 툴팁 스타일 */
+.achievementTooltip {
+    visibility: hidden;
+    opacity: 0;
+    width: 200px; /* 툴팁 너비 */
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%; /* 업적 위로 표시 */
+    left: 50%;
+    margin-left: -100px; /* 너비의 절반 */
+    transition: opacity 0.3s;
+    font-size: 0.8em; /* 툴팁 글자 크기 조정 */
+    white-space: normal; /* 툴팁 내용이 길어지면 줄 바꿈 허용 */
 }
 
-.achievementUnlocked .achievementDescription {
-    color: #333;
+.achievementTooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%; /* 아래쪽 삼각형 */
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+/* 달성된 업적에 마우스 오버 시에만 툴팁 표시 */
+.achievementUnlocked:hover .achievementTooltip {
+    visibility: visible;
+    opacity: 1;
 }
 
 /* ------------------- 반응형 디자인 (모바일) ------------------- */
 @media (max-width: 768px) {
-  .flexWrapper {
-    flex-direction: column;
-    padding: 1rem;
-    gap: 1.5rem;
-  }
+    .flexWrapper {
+        flex-direction: column;
+        padding: 1rem;
+        gap: 1.5rem;
+    }
 
-  .mainPanel,
-  .statsAndAchievementsContainer {
-    width: 100%;
-    min-width: unset;
-    max-width: 100%;
-    padding: 1rem;
-  }
+    .mainPanel,
+    .statsAndAchievementsContainer {
+        width: 100%;
+        min-width: unset;
+        max-width: 100%;
+        padding: 1rem;
+    }
 
-  .statsPanel {
-    margin-top: 0;
-  }
+    .statsPanel {
+        margin-top: 0;
+    }
 
-  .numberGrid {
-    grid-template-columns: repeat(6, 1fr);
-    gap: 0.4rem;
-  }
+    .numberGrid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.4rem;
+    }
 
-  .numberButton {
-    width: 40px;
-    height: 40px;
-    font-size: 0.9rem;
-  }
+    .numberButton {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
 
-  .modalContent {
-    padding: 1.5rem;
-  }
+    .modalContent {
+        padding: 1.5rem;
+    }
 
-  .modalContent h3 {
-    font-size: 1.5rem;
-  }
+    .modalContent h3 {
+        font-size: 1.5rem;
+    }
 
-  .modalContent p {
-    font-size: 1rem;
-  }
+    .modalContent p {
+        font-size: 1rem;
+    }
 
-  .modalActions {
-    flex-direction: column;
-    gap: 0.8rem;
-  }
+    .modalActions {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
 
-  .modalButton {
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
-    width: 100%;
-  }
+    .modalButton {
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+        width: 100%;
+    }
 
-  .achievementToast {
+    .achievementToast {
         padding: 15px 25px; /* 모바일에서도 적당한 크기로 유지 (데스크톱보다 약간 작게) */
         min-width: 300px; /* 모바일 최소 너비 (데스크톱보다 약간 작게) */
     }
@@ -539,5 +585,11 @@
 
     .achievementToast p {
         font-size: 0.95rem; /* 모바일 폰트 사이즈 조정 */
+    }
+
+    /* 툴팁이 모바일에서는 다르게 동작하거나 숨겨질 수 있습니다. */
+    /* 모바일에서는 툴팁을 표시하지 않도록 설정하거나 다른 UI를 고려할 수 있습니다. */
+    .achievementTooltip {
+        display: none; /* 모바일에서는 툴팁을 숨깁니다. */
     }
 }

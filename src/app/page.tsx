@@ -8,49 +8,57 @@ const ACHIEVEMENTS = [
   {
     id: 'firstTry',
     title: '벼락부자를 꿈꾸며..',
-    description: '로또를 처음 시작하셨습니다!',
+    description: '로또를 처음 시작하셨습니다!', // 달성 후 설명
+    conditionDescription: '로또 시뮬레이션 최초 실행', // 해금 조건 설명
     condition: (stats: any, tryCount: number, net: number) => tryCount === 1,
   },
   {
     id: 'lostChicken',
     title: '먹는게 남는 장사',
     description: '당신은 치킨 한마리를 잃었습니다..',
+    conditionDescription: '순이익 -20,000원 이하',
     condition: (stats: any, tryCount: number, net: number) => net <= -20000,
   },
   {
     id: 'maxAmountLimit',
     title: '최대 금액 한도',
     description: '로또는 매주 최대 1인당 10만원까지 구매 가능합니다.',
+    conditionDescription: '로또 시뮬레이션 100회 이상 진행',
     condition: (stats: any, tryCount: number, net: number) => tryCount >= 100, // 100회 시도 (10만원)
-  },
-  {
-    id: 'lost1000Times',
-    title: '이정도면 하나 줄 때 됐잖아!',
-    description: '딱 한 장만 더 사볼까요..?',
-    condition: (stats: any, tryCount: number, net: number) => stats.none >= 1000,
   },
   {
     id: 'fifthWin20',
     title: '생각보다 5등도 당첨되기 힘들죠?',
     description: '실제로 로또 5등 당첨 확률은 불과 2.2%입니다.',
+    conditionDescription: '5등 당첨 횟수가 20회',
     condition: (stats: any, tryCount: number, net: number) => stats.fifth >= 20,
+  },
+  {
+    id: 'lost1000Times',
+    title: '이정도면 하나 줄 때 됐잖아!',
+    description: '딱 한 장만 더 사볼까요..?',
+    conditionDescription: '낙첨 횟수가 1,000회',
+    condition: (stats: any, tryCount: number, net: number) => stats.none >= 1000,
   },
   {
     id: 'thirdWin',
     title: '3등 당첨을 진심으로 축하합니다!',
     description: '당신은 150만원의 주인이 되셨습니다!',
+    conditionDescription: '3등 당첨',
     condition: (stats: any, tryCount: number, net: number) => stats.third >= 1,
   },
   {
     id: 'secondWin',
     title: '그거 아시나요?',
     description: '올림픽 은메달리스트들은 동메달리스트들에 비해 행복지수가 낮답니다.. 왜일까요?',
+    conditionDescription: '2등 당첨',
     condition: (stats: any, tryCount: number, net: number) => stats.second >= 1,
   },
   {
     id: 'firstWin',
-    title: '당첨을 축하드립니다만',
+    title: '1등 당첨을 축하드립니다만',
     description: '돈은 드릴 수 없습니다.. 그러게 왜 여기서..',
+    conditionDescription: '1등 당첨',
     condition: (stats: any, tryCount: number, net: number) => stats.first >= 1,
   },
 ];
@@ -111,7 +119,7 @@ export default function Home() {
   useEffect(() => {
     const totalSpent = tryCount * 1000;
     const totalWon = winStats.first * 2000000000 + winStats.second * 50000000 +
-                     winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
+                      winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
     const currentNet = totalWon - totalSpent;
 
     ACHIEVEMENTS.forEach(achievement => {
@@ -181,17 +189,17 @@ export default function Home() {
     if (manualSelection.includes(num)) { // 이미 선택된 번호는 해제
         setManualSelection(prev => prev.filter(n => n !== num));
     } else { // 새로운 번호 선택
-        if (manualSelection.length >= 6) return; // 6개 이상 선택 불가
-        const updated = [...manualSelection, num].sort((a, b) => a - b); // 정렬하여 저장
-        setManualSelection(updated);
-        // 반자동 모드에서 6개 모두 선택 시 내 번호로 자동 설정
-        if (mode === 'semi' && updated.length === 6) {
-            setMyNumbers(updated);
-        }
-        // 수동 모드에서 6개 모두 선택 시 내 번호로 자동 설정
-        if (mode === 'manual' && updated.length === 6) {
-            setMyNumbers(updated);
-        }
+      if (manualSelection.length >= 6) return; // 6개 이상 선택 불가
+      const updated = [...manualSelection, num].sort((a, b) => a - b); // 정렬하여 저장
+      setManualSelection(updated);
+      // 반자동 모드에서 6개 모두 선택 시 내 번호로 자동 설정
+      if (mode === 'semi' && updated.length === 6) {
+          setMyNumbers(updated);
+      }
+      // 수동 모드에서 6개 모두 선택 시 내 번호로 자동 설정
+      if (mode === 'manual' && updated.length === 6) {
+          setMyNumbers(updated);
+      }
     }
   };
 
@@ -520,16 +528,25 @@ export default function Home() {
           <h2 className={styles.panelTitle}>🏆 업적</h2>
           <ul className={styles.achievementsList}>
             {ACHIEVEMENTS.map(achievement => (
-              <li key={achievement.id} className={achievementsUnlocked[achievement.id] ? styles.achievementUnlocked : ''}>
+              <li 
+                key={achievement.id} 
+                className={`${styles.achievementItem} ${achievementsUnlocked[achievement.id] ? styles.achievementUnlocked : ''}`}
+              >
                 {achievementsUnlocked[achievement.id] ? (
                   <>
+                    {/* 업적 달성 시: 제목과 설명 (description) 표시, 툴팁으로 조건 설명 제공 */}
                     <span className={styles.achievementTitle}>{achievement.title}</span>
                     <span className={styles.achievementDescription}>{achievement.description}</span>
+                    <div className={styles.achievementTooltip}>
+                      {achievement.conditionDescription || achievement.description}
+                    </div>
                   </>
                 ) : (
                   <>
+                    {/* 업적 미달성 시: '???' 표시, 툴팁 없음 */}
                     <span className={styles.achievementTitle}>???</span>
                     <span className={styles.achievementDescription}>???</span>
+                    {/* 미달성 업적에는 툴팁을 표시하지 않습니다. */}
                   </>
                 )}
               </li>
