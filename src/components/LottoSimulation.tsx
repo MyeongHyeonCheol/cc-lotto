@@ -108,19 +108,18 @@ export default function LottoSimulation() {
   const min = 1;
   const max = 45;
 
-  const [lottoRecords, setLottoRecords] = useState<LottoRecord[]>(() => {
-    // Load records from localStorage on initial render
-    const savedRecords = localStorage.getItem('lottoRecords');
-    return savedRecords ? JSON.parse(savedRecords) : [];
-  });
+  // ⭐⭐ 여기가 변경된 부분입니다. lottoRecords의 초기값을 빈 배열로 설정 ⭐⭐
+  const [lottoRecords, setLottoRecords] = useState<LottoRecord[]>([]);
 
   // Effect to load audio and persisted state from localStorage
   useEffect(() => {
     achievementSoundRef.current = document.getElementById('achievement-sound') as HTMLAudioElement;
 
+    // ⭐⭐ 기존 useEffect에 lottoRecords 로딩 로직 추가 ⭐⭐
     const savedTryCount = localStorage.getItem('lottoTryCount');
     const savedWinStats = localStorage.getItem('lottoWinStats');
     const savedAchievements = localStorage.getItem('lottoAchievements');
+    const savedRecords = localStorage.getItem('lottoRecords'); // 새로 추가: lottoRecords 로딩
 
     if (savedTryCount) {
       setTryCount(parseInt(savedTryCount, 10));
@@ -130,6 +129,15 @@ export default function LottoSimulation() {
     }
     if (savedAchievements) {
       setAchievementsUnlocked(JSON.parse(savedAchievements));
+    }
+    // ⭐⭐ lottoRecords 상태 업데이트 ⭐⭐
+    if (savedRecords) {
+      try {
+        setLottoRecords(JSON.parse(savedRecords));
+      } catch (e) {
+        console.error("Failed to parse lotto records from localStorage", e);
+        setLottoRecords([]); // 파싱 실패 시 초기화
+      }
     }
   }, []); // Run only once on mount
 
@@ -436,7 +444,7 @@ export default function LottoSimulation() {
   // Calculate total spent, won, and net
   const totalSpent = tryCount * 1000;
   const totalWon = winStats.first * 2000000000 + winStats.second * 50000000 +
-                   winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
+                     winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
   const net = totalWon - totalSpent;
 
   // Callback to get the message for the current draw result
@@ -515,7 +523,7 @@ export default function LottoSimulation() {
           bonusNumber={bonusNumber}
           getResultMessage={getResultMessage}
         />
-        
+
         {/* Lotto Records component, placed directly below LottoDisplay as requested */}
         <LottoRecords records={lottoRecords} />
       </div>
