@@ -1,17 +1,28 @@
+// src/app/LottoSimulation.tsx
+
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import styles from '@/styles/LottoSimulation.module.css';
 
-// 하위 컴포넌트 임포트
+// Import child components
 import { LottoControls } from './lotto/LottoControls';
 import { LottoDisplay } from './lotto/LottoDisplay';
 import { LottoStats } from './lotto/LottoStats';
 import { AchievementsPanel } from './lotto/AchievementsPanel';
 import { ResetModal } from './lotto/ResetModal';
 import { AchievementToast } from './lotto/AchievementToast';
+import { LottoRecords } from './lotto/LottoRecords';
 
-// 업적 데이터 정의 (메인 컴포넌트 또는 별도 유틸리티 파일에 유지)
+export interface LottoRecord {
+  id: string;
+  rank: number;
+  myNumbers: number[];
+  winningNumbers: number[];
+  bonusNumber: number;
+  matchedNumbers: number[];
+}
+
 const ACHIEVEMENTS = [
     {
         id: 'firstTry',
@@ -72,345 +83,472 @@ const ACHIEVEMENTS = [
 ];
 
 export default function LottoSimulation() {
-    const [myNumbers, setMyNumbers] = useState<number[]>([]);
-    const [manualSelection, setManualSelection] = useState<number[]>([]);
-    const [winningNumbers, setWinningNumbers] = useState<number[]>([]);
-    const [bonusNumber, setBonusNumber] = useState<number | null>(null);
-    const [mode, setMode] = useState<'auto' | 'manual' | 'semi'>('auto');
+  const [myNumbers, setMyNumbers] = useState<number[]>([]);
+  const [manualSelection, setManualSelection] = useState<number[]>([]);
+  const [winningNumbers, setWinningNumbers] = useState<number[]>([]);
+  const [bonusNumber, setBonusNumber] = useState<number | null>(null);
+  const [mode, setMode] = useState<'auto' | 'manual' | 'semi'>('auto');
 
-    const [tryCount, setTryCount] = useState(0);
-    const [winStats, setWinStats] = useState({
-        first: 0, second: 0, third: 0, fourth: 0, fifth: 0, none: 0,
-    });
+  const [tryCount, setTryCount] = useState(0);
+  const [winStats, setWinStats] = useState({
+    first: 0, second: 0, third: 0, fourth: 0, fifth: 0, none: 0,
+  });
 
-    const [isAutoRunning, setIsAutoRunning] = useState(false);
-    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    const [showResetModal, setShowResetModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
 
-    const [achievementsUnlocked, setAchievementsUnlocked] = useState<Record<string, boolean>>({});
-    const [currentAchievementToast, setCurrentAchievementToast] = useState<{ id: string; title: string; description: string; } | null>(null);
-    const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [achievementsUnlocked, setAchievementsUnlocked] = useState<Record<string, boolean>>({});
+  const [currentAchievementToast, setCurrentAchievementToast] = useState<{ id: string; title: string; description: string; } | null>(null);
+  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const achievementSoundRef = useRef<HTMLAudioElement | null>(null);
+  const achievementSoundRef = useRef<HTMLAudioElement | null>(null);
 
-    const min = 1;
-    const max = 45;
+  const min = 1;
+  const max = 45;
 
-    useEffect(() => {
-        achievementSoundRef.current = document.getElementById('achievement-sound') as HTMLAudioElement;
+  const [lottoRecords, setLottoRecords] = useState<LottoRecord[]>(() => {
+    // Load records from localStorage on initial render
+    const savedRecords = localStorage.getItem('lottoRecords');
+    return savedRecords ? JSON.parse(savedRecords) : [];
+  });
 
-        const savedTryCount = localStorage.getItem('lottoTryCount');
-        const savedWinStats = localStorage.getItem('lottoWinStats');
-        const savedAchievements = localStorage.getItem('lottoAchievements');
+  // Effect to load audio and persisted state from localStorage
+  useEffect(() => {
+    achievementSoundRef.current = document.getElementById('achievement-sound') as HTMLAudioElement;
 
-        if (savedTryCount) {
-            setTryCount(parseInt(savedTryCount, 10));
-        }
-        if (savedWinStats) {
-            setWinStats(JSON.parse(savedWinStats));
-        }
-        if (savedAchievements) {
-            setAchievementsUnlocked(JSON.parse(savedAchievements));
-        }
-    }, []);
+    const savedTryCount = localStorage.getItem('lottoTryCount');
+    const savedWinStats = localStorage.getItem('lottoWinStats');
+    const savedAchievements = localStorage.getItem('lottoAchievements');
 
-    useEffect(() => {
-        localStorage.setItem('lottoTryCount', tryCount.toString());
-        localStorage.setItem('lottoWinStats', JSON.stringify(winStats));
-        localStorage.setItem('lottoAchievements', JSON.stringify(achievementsUnlocked));
-    }, [tryCount, winStats, achievementsUnlocked]);
+    if (savedTryCount) {
+      setTryCount(parseInt(savedTryCount, 10));
+    }
+    if (savedWinStats) {
+      setWinStats(JSON.parse(savedWinStats));
+    }
+    if (savedAchievements) {
+      setAchievementsUnlocked(JSON.parse(savedAchievements));
+    }
+  }, []); // Run only once on mount
 
-    const playAchievementSound = () => {
-        if (achievementSoundRef.current) {
-            achievementSoundRef.current.currentTime = 0;
-            achievementSoundRef.current.play().catch(error => {
-                console.log("Failed to play sound automatically. User interaction might be required.", error);
-            });
-        }
-    };
+  // Effect to save state to localStorage whenever relevant state changes
+  useEffect(() => {
+    localStorage.setItem('lottoTryCount', tryCount.toString());
+    localStorage.setItem('lottoWinStats', JSON.stringify(winStats));
+    localStorage.setItem('lottoAchievements', JSON.stringify(achievementsUnlocked));
+    localStorage.setItem('lottoRecords', JSON.stringify(lottoRecords));
+  }, [tryCount, winStats, achievementsUnlocked, lottoRecords]);
 
-    useEffect(() => {
-        const totalSpent = tryCount * 1000;
-        const totalWon = winStats.first * 2000000000 + winStats.second * 50000000 +
-                         winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
-        const currentNet = totalWon - totalSpent;
+  // Callback to play achievement sound
+  const playAchievementSound = useCallback(() => {
+    if (achievementSoundRef.current) {
+      achievementSoundRef.current.currentTime = 0; // Rewind to start
+      achievementSoundRef.current.play().catch(error => {
+        // Handle play() promise rejection (e.g., user interaction required)
+        console.log("Failed to play sound automatically. User interaction might be required.", error);
+      });
+    }
+  }, []);
 
-        ACHIEVEMENTS.forEach(achievement => {
-            if (!achievementsUnlocked[achievement.id] && achievement.condition(winStats, tryCount, currentNet)) {
-                setAchievementsUnlocked(prev => ({ ...prev, [achievement.id]: true }));
-                setCurrentAchievementToast({ id: achievement.id, title: achievement.title, description: achievement.description });
-                playAchievementSound();
-
-                if (toastTimeoutRef.current) {
-                    clearTimeout(toastTimeoutRef.current);
-                }
-                toastTimeoutRef.current = setTimeout(() => {
-                    setCurrentAchievementToast(null);
-                    toastTimeoutRef.current = null;
-                }, 5000);
-            }
-        });
-    }, [tryCount, winStats, achievementsUnlocked]);
-
-
-    const generateUniqueNumbers = (count: number, exclude: number[] = []): number[] => {
-        const numbers: number[] = [];
-        while (numbers.length < count) {
-            const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-            if (!numbers.includes(randomNumber) && !exclude.includes(randomNumber)) {
-                numbers.push(randomNumber);
-            }
-        }
-        return numbers;
-    };
-
-    const evaluateResult = (mine: number[], win: number[], bonus: number) => {
-        const matchCount = mine.filter(n => win.includes(n)).length;
-        const hasBonus = mine.includes(bonus);
-
-        setWinStats(prev => {
-            const updated = { ...prev };
-            if (matchCount === 6) updated.first++;
-            else if (matchCount === 5 && hasBonus) updated.second++;
-            else if (matchCount === 5) updated.third++;
-            else if (matchCount === 4) updated.fourth++;
-            else if (matchCount === 3) updated.fifth++;
-            else updated.none++;
-            return updated;
-        });
-
-        setTryCount(prev => prev + 1);
-    };
-
-    const getWinningNumbers = () => {
-        if (myNumbers.length !== 6) return;
-        const main = generateUniqueNumbers(6);
-        const bonus = generateUniqueNumbers(1, main)[0];
-        setWinningNumbers(main);
-        setBonusNumber(bonus);
-        evaluateResult(myNumbers, main, bonus);
-    };
-
-    const getMyNumbers = () => {
-        const mine = generateUniqueNumbers(6);
-        setMyNumbers(mine);
-    };
-
-    const handleManualSelect = (num: number) => {
-        if (manualSelection.includes(num)) {
-            setManualSelection(prev => prev.filter(n => n !== num));
-        } else {
-            if (manualSelection.length >= 6) return;
-            const updated = [...manualSelection, num].sort((a, b) => a - b);
-            setManualSelection(updated);
-            if (mode === 'semi' && updated.length === 6) {
-                setMyNumbers(updated);
-            }
-            if (mode === 'manual' && updated.length === 6) {
-                setMyNumbers(updated);
-            }
-        }
-    };
-
-    const fillRemainingForSemiAuto = () => {
-        if (manualSelection.length === 0) return alert('먼저 번호를 선택해주세요!');
-        if (manualSelection.length === 6) {
-            setMyNumbers([...manualSelection]);
-            return;
-        }
-        const remaining = 6 - manualSelection.length;
-        const autoPart = generateUniqueNumbers(remaining, manualSelection);
-        const final = [...manualSelection, ...autoPart].sort((a, b) => a - b);
-        setMyNumbers(final);
-    };
-
-    const resetManual = () => {
-        setManualSelection([]);
-        setMyNumbers([]);
-        setWinningNumbers([]);
-        setBonusNumber(null);
-        stopAutoDraw();
-        setIsAutoRunning(false);
-    };
-
-    const startAutoDraw = () => {
-        if (intervalRef.current) return;
-
-        intervalRef.current = setInterval(() => {
-            const main = generateUniqueNumbers(6);
-            const bonus = generateUniqueNumbers(1, main)[0];
-            setWinningNumbers(main);
-            setBonusNumber(bonus);
-
-            let mine: number[] = [];
-
-            if (mode === 'auto') {
-                mine = generateUniqueNumbers(6);
-                setMyNumbers(mine);
-            } else if (mode === 'semi') {
-                if (manualSelection.length === 0) {
-                    stopAutoDraw();
-                    setIsAutoRunning(false);
-                    alert('반자동 모드에서는 최소 1개 이상 번호를 선택해야 자동 추첨을 시작할 수 있습니다.');
-                    return;
-                }
-                if (manualSelection.length === 6) {
-                    mine = [...manualSelection];
-                    setMyNumbers(mine);
-                } else {
-                    const remaining = 6 - manualSelection.length;
-                    const autoPart = generateUniqueNumbers(remaining, manualSelection);
-                    mine = [...manualSelection, ...autoPart].sort((a, b) => a - b);
-                    setMyNumbers(mine);
-                }
-            } else if (mode === 'manual') {
-                if (manualSelection.length !== 6) {
-                    stopAutoDraw();
-                    setIsAutoRunning(false);
-                    alert('수동 모드에서는 번호를 6개 모두 선택해야 자동 추첨이 가능합니다.');
-                    return;
-                }
-                mine = [...manualSelection];
-                setMyNumbers(mine);
-            }
-
-            evaluateResult(mine, main, bonus);
-        }, 500);
-    };
-
-    const stopAutoDraw = () => {
-        if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        }
-    };
-
-    const toggleAuto = () => {
-        if (isAutoRunning) {
-            stopAutoDraw();
-            setIsAutoRunning(false);
-        } else {
-            if (mode === 'manual' && manualSelection.length !== 6) {
-                alert('수동 모드에서는 번호를 6개 모두 선택해야 자동 추첨이 가능합니다.');
-                return;
-            }
-            if (mode === 'semi' && manualSelection.length === 0) {
-                alert('반자동 모드에서는 최소 1개 이상 번호를 선택해야 자동 추첨을 시작할 수 있습니다.');
-                return;
-            }
-            if ((mode === 'manual' || (mode === 'semi' && manualSelection.length === 6)) && manualSelection.length === 6) {
-                setMyNumbers([...manualSelection].sort((a,b) => a-b));
-            } else if (mode === 'semi' && manualSelection.length > 0 && manualSelection.length < 6) {
-                const remaining = 6 - manualSelection.length;
-                const autoPart = generateUniqueNumbers(remaining, manualSelection);
-                setMyNumbers([...manualSelection, ...autoPart].sort((a,b) => a-b));
-            } else if (mode === 'auto') {
-                // 자동 모드는 시작 시 myNumbers를 생성할 필요 없음 (interval에서 처리)
-            }
-
-            startAutoDraw();
-            setIsAutoRunning(true);
-        }
-    };
-
+  // Effect to check and trigger achievements
+  useEffect(() => {
     const totalSpent = tryCount * 1000;
     const totalWon = winStats.first * 2000000000 + winStats.second * 50000000 +
-        winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
-    const net = totalWon - totalSpent;
+                     winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
+    const currentNet = totalWon - totalSpent;
 
-    const getResultMessage = (): string | null => {
-        if (myNumbers.length !== 6 || winningNumbers.length !== 6 || bonusNumber === null) return null;
-        const match = myNumbers.filter(n => winningNumbers.includes(n)).length;
-        const hasBonusMatch = myNumbers.includes(bonusNumber);
+    ACHIEVEMENTS.forEach(achievement => {
+      // Check if achievement is not unlocked and its condition is met
+      if (!achievementsUnlocked[achievement.id] && achievement.condition(winStats, tryCount, currentNet)) {
+        setAchievementsUnlocked(prev => ({ ...prev, [achievement.id]: true })); // Unlock achievement
+        // Show achievement toast
+        setCurrentAchievementToast({ id: achievement.id, title: achievement.title, description: achievement.description });
+        playAchievementSound(); // Play sound
 
-        if (match === 6) return '🎉 축하합니다! 1등입니다!';
-        if (match === 5 && hasBonusMatch) return '🥳 축하합니다! 2등입니다!';
-        if (match === 5) return '🎊 축하합니다! 3등입니다!';
-        if (match === 4) return '🎉 축하합니다! 4등입니다!';
-        if (match === 3) return '👏 축하합니다! 5등입니다!';
-        return '😢 아쉽지만 다음 기회에!';
+        // Clear any existing toast timeout and set a new one
+        if (toastTimeoutRef.current) {
+          clearTimeout(toastTimeoutRef.current);
+        }
+        toastTimeoutRef.current = setTimeout(() => {
+          setCurrentAchievementToast(null); // Hide toast after 5 seconds
+          toastTimeoutRef.current = null;
+        }, 5000);
+      }
+    });
+  }, [tryCount, winStats, achievementsUnlocked, playAchievementSound]); // Dependencies for this effect
+
+  // Callback to generate unique random numbers within min/max range
+  const generateUniqueNumbers = useCallback((count: number, exclude: number[] = []): number[] => {
+    const numbers: number[] = [];
+    while (numbers.length < count) {
+      const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+      if (!numbers.includes(randomNumber) && !exclude.includes(randomNumber)) {
+        numbers.push(randomNumber);
+      }
+    }
+    return numbers.sort((a,b) => a-b); // Always return sorted numbers
+  }, [min, max]);
+
+  // Callback to calculate lotto rank and matched numbers
+  const calculateRankAndMatches = useCallback((
+    mySelectedNumbers: number[],
+    actualWinningNumbers: number[],
+    actualBonusNumber: number
+  ): { rank: number; matchedNumbers: number[]; actualWinningNumbers: number[]; actualBonusNumber: number } => {
+    let matchCount = 0;
+    let bonusMatch = false;
+    const currentMatchedNumbers: number[] = [];
+
+    // Count matches with main winning numbers
+    mySelectedNumbers.forEach(myNum => {
+      if (actualWinningNumbers.includes(myNum)) {
+        matchCount++;
+        currentMatchedNumbers.push(myNum);
+      }
+    });
+
+    // Check for bonus number match if it's not already a main match
+    if (mySelectedNumbers.includes(actualBonusNumber) && !currentMatchedNumbers.includes(actualBonusNumber)) {
+      bonusMatch = true;
+    }
+
+    let rank = 0;
+
+    // Determine rank based on match count and bonus match
+    if (matchCount === 6) {
+      rank = 1;
+    } else if (matchCount === 5 && bonusMatch) {
+      rank = 2;
+    } else if (matchCount === 5) {
+      rank = 3;
+    } else if (matchCount === 4) {
+      rank = 4;
+    } else if (matchCount === 3) {
+      rank = 5;
+    }
+
+    return {
+      rank: rank,
+      matchedNumbers: currentMatchedNumbers,
+      actualWinningNumbers: actualWinningNumbers,
+      actualBonusNumber: actualBonusNumber,
     };
+  }, []);
 
-    const handleResetConfirm = () => {
-        localStorage.removeItem('lottoTryCount');
-        localStorage.removeItem('lottoWinStats');
-        localStorage.removeItem('lottoAchievements');
+  // Callback to add a new lotto record
+  const addRecord = useCallback((record: LottoRecord) => {
+    setLottoRecords(prevRecords => {
+      return [record, ...prevRecords]; // Add new record to the beginning (latest first)
+    });
+  }, []);
 
-        setTryCount(0);
-        setWinStats({ first: 0, second: 0, third: 0, fourth: 0, fifth: 0, none: 0 });
-        setAchievementsUnlocked({});
+  // Callback to evaluate the result of a lotto draw
+  const evaluateResult = useCallback((mine: number[], win: number[], bonus: number) => {
+    const { rank, matchedNumbers, actualWinningNumbers, actualBonusNumber } =
+      calculateRankAndMatches(mine, win, bonus);
 
-        setMyNumbers([]);
-        setWinningNumbers([]);
-        setBonusNumber(null);
-        setManualSelection([]);
-        stopAutoDraw();
-        setIsAutoRunning(false);
-        setShowResetModal(false);
-        setCurrentAchievementToast(null);
-    };
+    // Update win statistics
+    setWinStats(prev => {
+      const updated = { ...prev };
+      if (rank === 1) updated.first++;
+      else if (rank === 2) updated.second++;
+      else if (rank === 3) updated.third++;
+      else if (rank === 4) updated.fourth++;
+      else if (rank === 5) updated.fifth++;
+      else updated.none++;
+      return updated;
+    });
 
-    return (
-        <div className={styles.flexWrapper}>
-            <AchievementToast currentAchievementToast={currentAchievementToast} />
+    setTryCount(prev => prev + 1); // Increment try count
 
-            <audio id="achievement-sound" src="/sounds/achievement_sound.mp3" preload="auto" style={{ display: 'none' }}></audio>
+    // Add record for 1st to 5th place wins
+    if (rank > 0 && rank <= 5) {
+      const newRecord: LottoRecord = {
+        id: Date.now().toString(), // Unique ID for the record (timestamp)
+        rank: rank,
+        // ⭐ Save the exact `mine` numbers, ensuring they are sorted before saving
+        myNumbers: [...mine].sort((a,b) => a-b),
+        winningNumbers: actualWinningNumbers,
+        bonusNumber: actualBonusNumber,
+        matchedNumbers: matchedNumbers,
+      };
+      addRecord(newRecord);
+    }
+  }, [calculateRankAndMatches, addRecord]);
 
-            <div className={styles.mainPanel}>
-                <h1 className={styles.title}>🎰 LOTTO SIMULATION 🎰</h1>
-                <hr className={styles.divider} />
+  // Callback to get winning numbers and evaluate the result
+  const getWinningNumbers = useCallback(() => {
+    if (myNumbers.length !== 6) return; // Ensure 6 numbers are selected
+    const main = generateUniqueNumbers(6); // Generate 6 main winning numbers
+    const bonus = generateUniqueNumbers(1, main)[0]; // Generate 1 bonus number, excluding main
+    setWinningNumbers(main);
+    setBonusNumber(bonus);
+    evaluateResult(myNumbers, main, bonus); // Evaluate the current draw
+  }, [myNumbers, generateUniqueNumbers, evaluateResult]);
 
-                <LottoControls
-                    mode={mode}
-                    setMode={setMode}
-                    myNumbers={myNumbers}
-                    getMyNumbers={getMyNumbers}
-                    manualSelection={manualSelection}
-                    handleManualSelect={handleManualSelect}
-                    fillRemainingForSemiAuto={fillRemainingForSemiAuto}
-                    resetManual={resetManual}
-                    winningNumbers={winningNumbers}
-                    getWinningNumbers={getWinningNumbers}
-                    min={min}
-                    max={max}
-                    isAutoRunning={isAutoRunning} // LottoControls 내부에서 resetManual 시 자동 추첨 중지
-                    bonusNumber={bonusNumber}
-                />
+  // Callback to generate and set a new set of 'myNumbers' (auto pick)
+  const getMyNumbers = useCallback(() => {
+    const mine = generateUniqueNumbers(6);
+    setMyNumbers(mine);
+  }, [generateUniqueNumbers]);
 
-                <LottoDisplay
-                    myNumbers={myNumbers}
-                    winningNumbers={winningNumbers}
-                    bonusNumber={bonusNumber}
-                    getResultMessage={getResultMessage}
-                />
-            </div>
+  // Callback for manual number selection
+  const handleManualSelect = useCallback((num: number) => {
+    setManualSelection(prev => {
+      if (prev.includes(num)) {
+        // If number is already selected, remove it
+        const filtered = prev.filter(n => n !== num);
+        // Update myNumbers based on mode and selection count
+        if (mode === 'manual' || (mode === 'semi' && filtered.length === 6)) {
+          setMyNumbers(filtered);
+        } else if (mode === 'semi' && filtered.length < 6) {
+          setMyNumbers([]); // Clear myNumbers if semi-auto selection becomes incomplete
+        }
+        return filtered;
+      } else {
+        // If number is not selected, add it (up to 6)
+        if (prev.length >= 6) return prev; // Max 6 numbers
+        const updated = [...prev, num].sort((a, b) => a - b); // Add and sort
+        // Update myNumbers based on mode and selection count
+        if (mode === 'manual' || (mode === 'semi' && updated.length === 6)) {
+          setMyNumbers(updated);
+        }
+        return updated;
+      }
+    });
+  }, [mode]);
 
-            <div className={styles.statsAndAchievementsContainer}>
-                <LottoStats
-                    tryCount={tryCount}
-                    winStats={winStats}
-                    totalSpent={totalSpent}
-                    totalWon={totalWon}
-                    net={net}
-                    isAutoRunning={isAutoRunning}
-                    toggleAuto={toggleAuto}
-                    mode={mode}
-                    manualSelection={manualSelection}
-                    setShowResetModal={setShowResetModal}
-                />
+  // Callback to fill remaining numbers for semi-auto mode
+  const fillRemainingForSemiAuto = useCallback(() => {
+    if (manualSelection.length === 0) {
+      alert('먼저 번호를 선택해주세요!');
+      return;
+    }
+    if (manualSelection.length === 6) {
+      setMyNumbers([...manualSelection]); // If 6 already selected, just set them
+      return;
+    }
+    const remaining = 6 - manualSelection.length;
+    const autoPart = generateUniqueNumbers(remaining, manualSelection); // Generate unique remaining numbers
+    const final = [...manualSelection, ...autoPart].sort((a, b) => a - b); // Combine and sort
+    setMyNumbers(final);
+  }, [manualSelection, generateUniqueNumbers]);
 
-                <AchievementsPanel
-                    achievements={ACHIEVEMENTS}
-                    achievementsUnlocked={achievementsUnlocked}
-                />
-            </div>
+  // Callback to stop auto draw
+  const stopAutoDraw = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
 
-            <ResetModal
-                showResetModal={showResetModal}
-                setShowResetModal={setShowResetModal}
-                handleResetConfirm={handleResetConfirm}
-            />
-        </div>
-    );
+  // Callback to reset manual selection and display
+  const resetManual = useCallback(() => {
+    setManualSelection([]);
+    setMyNumbers([]);
+    setWinningNumbers([]);
+    setBonusNumber(null);
+    stopAutoDraw();
+    setIsAutoRunning(false);
+  }, [stopAutoDraw]);
+
+  // Callback to start auto draw interval
+  const startAutoDraw = useCallback(() => {
+    if (intervalRef.current) return; // Prevent multiple intervals
+
+    intervalRef.current = setInterval(() => {
+      const main = generateUniqueNumbers(6);
+      const bonus = generateUniqueNumbers(1, main)[0];
+      setWinningNumbers(main);
+      setBonusNumber(bonus);
+
+      let mine: number[] = [];
+
+      // Determine 'myNumbers' based on current mode
+      if (mode === 'auto') {
+        mine = generateUniqueNumbers(6);
+        setMyNumbers(mine);
+      } else if (mode === 'semi') {
+        if (manualSelection.length === 0) {
+          stopAutoDraw();
+          setIsAutoRunning(false);
+          alert('반자동 모드에서는 최소 1개 이상 번호를 선택해야 자동 추첨을 시작할 수 있습니다.');
+          return;
+        }
+        if (manualSelection.length === 6) {
+          mine = [...manualSelection];
+          setMyNumbers(mine);
+        } else {
+          const remaining = 6 - manualSelection.length;
+          const autoPart = generateUniqueNumbers(remaining, manualSelection);
+          mine = [...manualSelection, ...autoPart].sort((a, b) => a - b);
+          setMyNumbers(mine);
+        }
+      } else if (mode === 'manual') {
+        if (manualSelection.length !== 6) {
+          stopAutoDraw();
+          setIsAutoRunning(false);
+          alert('수동 모드에서는 번호를 6개 모두 선택해야 자동 추첨이 가능합니다.');
+          return;
+        }
+        mine = [...manualSelection];
+        setMyNumbers(mine);
+      }
+
+      evaluateResult(mine, main, bonus); // Evaluate the result of this auto draw
+    }, 500); // Draw every 500ms
+  }, [mode, manualSelection, generateUniqueNumbers, evaluateResult, stopAutoDraw]);
+
+  // Callback to toggle auto draw on/off
+  const toggleAuto = useCallback(() => {
+    if (isAutoRunning) {
+      stopAutoDraw();
+      setIsAutoRunning(false);
+    } else {
+      // Pre-checks for manual/semi-auto modes before starting auto draw
+      if (mode === 'manual' && manualSelection.length !== 6) {
+        alert('수동 모드에서는 번호를 6개 모두 선택해야 자동 추첨이 가능합니다.');
+        return;
+      }
+      if (mode === 'semi' && manualSelection.length === 0) {
+        alert('반자동 모드에서는 최소 1개 이상 번호를 선택해야 자동 추첨을 시작할 수 있습니다.');
+        return;
+      }
+      if (mode === 'semi' && manualSelection.length > 0 && manualSelection.length < 6) {
+        // If semi-auto and not all 6 numbers are selected, auto-fill them once
+        const remaining = 6 - manualSelection.length;
+        const autoPart = generateUniqueNumbers(remaining, manualSelection);
+        setMyNumbers([...manualSelection, ...autoPart].sort((a,b) => a-b));
+      } else if ((mode === 'manual' || mode === 'semi') && manualSelection.length === 6) {
+        // If 6 numbers are already selected manually/semi-auto, just set them
+        setMyNumbers([...manualSelection].sort((a,b) => a-b));
+      } else if (mode === 'auto') {
+        // No initial myNumbers generation needed for auto mode, interval handles it
+      }
+
+      startAutoDraw(); // Start the auto draw interval
+      setIsAutoRunning(true);
+    }
+  }, [isAutoRunning, mode, manualSelection, stopAutoDraw, startAutoDraw, generateUniqueNumbers]);
+
+  // Calculate total spent, won, and net
+  const totalSpent = tryCount * 1000;
+  const totalWon = winStats.first * 2000000000 + winStats.second * 50000000 +
+                   winStats.third * 1500000 + winStats.fourth * 50000 + winStats.fifth * 5000;
+  const net = totalWon - totalSpent;
+
+  // Callback to get the message for the current draw result
+  const getResultMessage = useCallback((): string | null => {
+    if (myNumbers.length !== 6 || winningNumbers.length !== 6 || bonusNumber === null) return null;
+    const match = myNumbers.filter(n => winningNumbers.includes(n)).length;
+    const hasBonusMatch = myNumbers.includes(bonusNumber);
+
+    if (match === 6) return '🎉 축하합니다! 1등입니다!';
+    if (match === 5 && hasBonusMatch) return '🥳 축하합니다! 2등입니다!';
+    if (match === 5) return '🎊 축하합니다! 3등입니다!';
+    if (match === 4) return '🎉 축하합니다! 4등입니다!';
+    if (match === 3) return '👏 축하합니다! 5등입니다!';
+    return '😢 아쉽지만 다음 기회에!';
+  }, [myNumbers, winningNumbers, bonusNumber]);
+
+  // Callback to handle confirmation of reset
+  const handleResetConfirm = useCallback(() => {
+    // Clear all localStorage items related to the simulation
+    localStorage.removeItem('lottoTryCount');
+    localStorage.removeItem('lottoWinStats');
+    localStorage.removeItem('lottoAchievements');
+    localStorage.removeItem('lottoRecords');
+
+    // Reset all relevant state variables to their initial values
+    setTryCount(0);
+    setWinStats({ first: 0, second: 0, third: 0, fourth: 0, fifth: 0, none: 0 });
+    setAchievementsUnlocked({});
+    setLottoRecords([]); // Clear all records
+
+    setMyNumbers([]);
+    setWinningNumbers([]);
+    setBonusNumber(null);
+    setManualSelection([]);
+    stopAutoDraw();
+    setIsAutoRunning(false);
+    setShowResetModal(false); // Close reset modal
+    setCurrentAchievementToast(null); // Clear any active toast
+  }, [stopAutoDraw]);
+
+
+  return (
+    <div className={styles.flexWrapper}>
+      {/* Achievement Toast notification */}
+      <AchievementToast currentAchievementToast={currentAchievementToast} />
+
+      {/* Hidden audio element for achievement sound */}
+      <audio id="achievement-sound" src="/sounds/achievement_sound.mp3" preload="auto" style={{ display: 'none' }}></audio>
+
+      <div className={styles.mainPanel}>
+        <h1 className={styles.title}>🎰 LOTTO SIMULATION 🎰</h1>
+        <hr className={styles.divider} />
+
+        {/* Lotto Controls component */}
+        <LottoControls
+          mode={mode}
+          setMode={setMode}
+          myNumbers={myNumbers}
+          getMyNumbers={getMyNumbers}
+          manualSelection={manualSelection}
+          handleManualSelect={handleManualSelect}
+          fillRemainingForSemiAuto={fillRemainingForSemiAuto}
+          resetManual={resetManual}
+          winningNumbers={winningNumbers}
+          getWinningNumbers={getWinningNumbers}
+          min={min}
+          max={max}
+          isAutoRunning={isAutoRunning}
+          bonusNumber={bonusNumber}
+        />
+
+        {/* Lotto Display component */}
+        <LottoDisplay
+          myNumbers={myNumbers}
+          winningNumbers={winningNumbers}
+          bonusNumber={bonusNumber}
+          getResultMessage={getResultMessage}
+        />
+        
+        {/* Lotto Records component, placed directly below LottoDisplay as requested */}
+        <LottoRecords records={lottoRecords} />
+      </div>
+
+      {/* Statistics and Achievements Panel */}
+      <div className={styles.statsAndAchievementsContainer}>
+        {/* Lotto Stats component */}
+        <LottoStats
+          tryCount={tryCount}
+          winStats={winStats}
+          totalSpent={totalSpent}
+          totalWon={totalWon}
+          net={net}
+          isAutoRunning={isAutoRunning}
+          toggleAuto={toggleAuto}
+          mode={mode}
+          manualSelection={manualSelection}
+          setShowResetModal={setShowResetModal}
+        />
+
+        {/* Achievements Panel component */}
+        <AchievementsPanel
+          achievements={ACHIEVEMENTS}
+          achievementsUnlocked={achievementsUnlocked}
+        />
+      </div>
+
+      {/* Reset Confirmation Modal */}
+      <ResetModal
+        showResetModal={showResetModal}
+        setShowResetModal={setShowResetModal}
+        handleResetConfirm={handleResetConfirm}
+      />
+    </div>
+  );
 }

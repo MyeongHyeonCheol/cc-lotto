@@ -141,12 +141,12 @@
 
 .button:hover {
     background-color: #005bb5;
-    transform: translateY(-2px);
+    /* transform: translateY(-2px); */
 }
 
-.button:active {
+/* .button:active {
     transform: translateY(0);
-}
+} */
 
 .button:disabled {
     background-color: #cccccc;
@@ -591,5 +591,132 @@
     /* 모바일에서는 툴팁을 표시하지 않도록 설정하거나 다른 UI를 고려할 수 있습니다. */
     .achievementTooltip {
         display: none; /* 모바일에서는 툴팁을 숨깁니다. */
+    }
+}
+
+.recordsContainer {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f8f8f8;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    font-family: 'Arial', sans-serif; /* 폰트 설정 통일 */
+}
+
+.recordsTitle {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 25px;
+    font-size: 2em; /* 제목 크기 키움 */
+    font-weight: 700; /* 제목 굵게 */
+    border-bottom: 3px solid #ddd; /* 선 두께 조절 */
+    padding-bottom: 15px;
+    letter-spacing: -0.5px;
+}
+
+.noRecordsMessage {
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+    padding: 25px; /* 패딩 증가 */
+    background-color: #ecf0f1;
+    border-radius: 8px;
+    font-size: 1.1em; /* 폰트 크기 조절 */
+    line-height: 1.5;
+}
+
+.recordItem {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px; /* 모서리 둥글게 */
+    padding: 25px; /* 패딩 증가 */
+    margin-bottom: 20px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08); /* 그림자 강조 */
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* 호버 효과 */
+}
+
+.recordItem:last-child {
+    margin-bottom: 0;
+}
+
+.recordHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px; /* 마진 증가 */
+    padding-bottom: 12px;
+    border-bottom: 1px dashed #cccccc; /* 점선 스타일 변경 */
+}
+
+.rankDisplay {
+    font-size: 1.8em; /* 등수 폰트 크기 키움 */
+    color: #007bff; /* 파란색 계열 강조 */
+    margin: 0;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1); /* 텍스트 그림자 */
+}
+
+.timestamp {
+    font-size: 0.95em; /* 폰트 크기 조절 */
+    color: #95a5a6;
+    font-weight: 500;
+}
+
+.numbersSection {
+    margin-bottom: 15px; /* 섹션 간 마진 조절 */
+}
+
+.numbersLabel {
+    font-weight: bold;
+    color: #34495e;
+    margin-bottom: 10px; /* 라벨과 번호 간 마진 조절 */
+    font-size: 1.1em;
+}
+
+.numbersContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* 번호 볼 간격 조절 */
+    justify-content: flex-start;
+}
+
+.numberBall {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 42px; /* 볼 크기 약간 키움 */
+    height: 42px; /* 볼 크기 약간 키움 */
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1.2em; /* 폰트 크기 키움 */
+    color: white;
+    background-color: #34495e;
+    border: 3px solid #2c3e50; /* 테두리 두께 조절 */
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25); /* 그림자 강조 */
+    transition: all 0.2s ease-in-out; /* 부드러운 전환 효과 */
+    flex-shrink: 0; /* 줄바꿈 시 크기 유지 */
+}
+
+.numberBall.matched {
+    background-color: #28a745; /* 매칭된 번호는 초록색으로 강조 */
+    border-color: #218838;
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4); /* 매칭된 번호 그림자 색상 변경 */
+    animation: pulse 1s infinite alternate; /* 매칭된 번호 애니메이션 */
+}
+
+/* 매칭된 번호 애니메이션 */
+@keyframes pulse {
+    from {
+        transform: scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: scale(1.05);
+        opacity: 0.9;
     }
 }
